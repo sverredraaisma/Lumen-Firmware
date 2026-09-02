@@ -1,0 +1,24 @@
+[package]
+name = "lumen-firmware"
+description = "Lumen device firmware: ESP-IDF HAL implementation, LED drivers, provisioning, OTA"
+version = "0.1.0"
+edition = "2021"
+license = "GPL-3.0-or-later"
+repository = "https://github.com/REPLACE-ME/lumen-firmware"
+rust-version = "1.85"
+authors = ["The Lumen contributors"]
+
+[features]
+default = []
+# Build variants come from board definitions in boards/. Features gate the
+# expensive optional capabilities; pins and LED counts stay runtime config.
+render = []
+audio = []
+compile = []   # caps=compile — on-device compilation, gated on the RAM measurement
+zigbee = []    # reached by FFI from the bridge shell, never from the core
+
+[dependencies]
+
+[[bin]]
+name = "lumen-firmware"
+path = "src/main.rs"
