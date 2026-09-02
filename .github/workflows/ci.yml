@@ -8,10 +8,11 @@ on:
 env:
   CARGO_TERM_COLOR: always
   RUSTFLAGS: -D warnings
+  COVERAGE_FLOOR: 95
 
 jobs:
   test:
-    name: fmt / clippy / test
+    name: fmt / clippy / test (host)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -20,5 +21,27 @@ jobs:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
       - run: cargo fmt --all -- --check
-      - run: cargo clippy --workspace --all-targets
-      - run: cargo test --workspace
+      - run: cargo clippy --all-targets
+      - run: cargo test
+
+  coverage:
+    name: coverage >= 95% (host-testable shell)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools-preview
+      - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@cargo-llvm-cov
+      - run: cargo llvm-cov --lcov --output-path lcov.info --fail-under-lines ${{ env.COVERAGE_FLOOR }}
+
+  # The board x feature build matrix lands with W9, once the esp-idf HAL exists.
+  # It must build every published board definition, or "prebuilt images so most
+  # users never compile" stops being true.
+  boards:
+    name: board variants (placeholder)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "board matrix wired up with W9"
