@@ -9,6 +9,9 @@
 //! lands in `main` is logic no test will ever reach, and on a device shell that
 //! is exactly the code that strands a room in the dark.
 
+pub mod boards;
+mod toml;
+
 /// The build's version, as published in `CAPS` and printed on start-up.
 pub fn version() -> &'static str {
     env!("CARGO_PKG_VERSION")

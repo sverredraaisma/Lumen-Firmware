@@ -9,7 +9,7 @@ implementation live here, and nothing else does.
 ## Adding your board is one file
 
 `boards/` holds one TOML file per supported board. That is the intended first
-contribution to this project — copy `boards/example-esp32c6-generic.toml`, edit
+contribution to this project — copy `boards/esp32c6-generic.toml`, edit
 it, open a PR. No internals knowledge required, and hardware coverage grows in
 the same motion as the contributor base.
 

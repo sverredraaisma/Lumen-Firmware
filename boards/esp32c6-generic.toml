@@ -1,0 +1,34 @@
+# A bare ESP32-C6 devkit, and the file to copy when adding your own board.
+#
+# Every field here is checked when the crate's tests run, and the filename must
+# match `board.name` — the name becomes a build-matrix entry and a published
+# artefact, so the two disagreeing would mean nobody could say what a board is
+# called.
+
+[board]
+name = "esp32c6-generic"
+chip = "esp32c6"                 # RISC-V: upstream Rust target, no espup needed
+target = "riscv32imac-unknown-none-elf"
+description = "Bare C6 devkit with a single addressable LED output"
+
+[features]
+enable = ["render"]              # Cargo features for this variant
+
+[[outputs]]
+id = "strip0"
+kind = "ws2812"
+pin = 8
+max_pixels = 300
+# Power budget in milliamps at full white. The runtime derates rather than
+# browning out the board.
+max_current_ma = 2000
+
+# How a person confirms a pairing at the device. Pairing is confirmed
+# physically on purpose: reaching the network must not be enough to join the
+# mesh. An LED output counts on its own, because the device can blink the
+# strip — so this table is only needed for a board that has no output.
+#
+# [identify]
+# button = true       # a button they can press
+# indicator = true    # a status LED they can watch blink
+# qr = true           # a code printed on the board

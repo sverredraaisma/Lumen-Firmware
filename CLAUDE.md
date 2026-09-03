@@ -6,8 +6,8 @@ implementation — and nothing else.
 
 - **Licence:** GPL-3.0
 - **Main branch:** `main`
-- **Status:** host stub, so CI has something to compile. The ESP-IDF HAL lands
-  with W9.
+- **Status:** host-testable shell only. Board definitions are read and validated
+  here; the ESP-IDF HAL lands with W9.
 
 ## Stack
 
@@ -39,7 +39,14 @@ cargo llvm-cov --summary-only                # coverage; must be >= 95%
   keep the untestable surface small enough that it is obviously correct by
   reading.
 - **Adding a board must not require editing a `.rs` file.** One TOML file in
-  `boards/`. That is the intended first contribution, and it stays that way.
+  `boards/`, and `boards.rs` reads it — including the test, which discovers the
+  directory rather than listing it, so a new definition is checked the moment it
+  is added. The filename must match `board.name`. That is the intended first
+  contribution, and it stays that way.
+- **A board nobody can confirm a pairing on is refused.** No LED output, no
+  button, no indicator and no printed code means no way to approve a pairing at
+  the device — and pairing is physical on purpose, so that reaching the network
+  is not enough to join a mesh. Enforced in `boards.rs`, not just written down.
 - **Pins and LED counts are runtime config; only optional capabilities are Cargo
   features.** Each feature doubles a dimension of the CI build matrix.
 - **Zigbee is reached by FFI from the bridge shell, never from the core.**
