@@ -7,10 +7,10 @@
 //! It builds on the host today so that CI has something to compile before the
 //! ESP-IDF toolchain is wired up. The esp-idf dependency and the target
 //! configuration land with W9.
+//!
+//! `main` stays one line. Everything host-testable belongs in `lib.rs`, because
+//! logic in `main` is logic no test reaches — see the note there.
 
 fn main() {
-    println!(
-        "lumen-firmware {} — host stub; no HAL implementation yet",
-        env!("CARGO_PKG_VERSION")
-    );
+    println!("{}", lumen_firmware::banner());
 }
