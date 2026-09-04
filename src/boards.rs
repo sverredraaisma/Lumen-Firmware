@@ -33,10 +33,10 @@ use crate::toml::{self, Value};
 /// RISC-V parts first and by preference: they build on upstream Rust, while
 /// Xtensa needs a forked toolchain. Setup friction is a tax the project pays
 /// forever, so the default examples are RISC-V.
-const CHIPS: &[(&str, &str)] = &[
-    ("esp32c3", "riscv32imc-unknown-none-elf"),
-    ("esp32c6", "riscv32imac-unknown-none-elf"),
-    ("esp32s3", "xtensa-esp32s3-none-elf"),
+const CHIPS: &[(&str, &str, u8)] = &[
+    ("esp32c3", "riscv32imc-unknown-none-elf", 1),
+    ("esp32c6", "riscv32imac-unknown-none-elf", 1),
+    ("esp32s3", "xtensa-esp32s3-none-elf", 2),
 ];
 
 /// Cargo features a board variant may enable.
@@ -90,6 +90,8 @@ pub struct Board {
     pub chip: String,
     pub target: String,
     pub description: String,
+    /// Cores this board renders on. See `render_cores` in `parse`.
+    pub render_cores: u8,
     pub features: Vec<String>,
     pub outputs: Vec<Output>,
     pub identify: Identify,
@@ -146,10 +148,10 @@ pub fn parse(text: &str) -> Result<Board, Error> {
     }
 
     let chip = require_str(board, "board", "chip")?;
-    let Some((_, expected_target)) = CHIPS.iter().find(|(c, _)| *c == chip) else {
+    let Some((_, expected_target, chip_cores)) = CHIPS.iter().find(|(c, _, _)| *c == chip) else {
         return bad(format!(
             "`board.chip` is `{chip}`, which this firmware has no target for; known chips are {}",
-            one_of(&CHIPS.iter().map(|(c, _)| *c).collect::<Vec<_>>())
+            one_of(&CHIPS.iter().map(|(c, _, _)| *c).collect::<Vec<_>>())
         ));
     };
     let target = require_str(board, "board", "target")?;
@@ -166,6 +168,36 @@ pub fn parse(text: &str) -> Result<Board, Error> {
         .and_then(Value::as_str)
         .unwrap_or("")
         .to_string();
+
+    // How many cores render. The pixels of a frame are independent, so a
+    // dual-core chip can split the strip - `lumen_device::Shard` is the seam and
+    // Spike S4 measured 1.97x on an S3 with the output byte-identical to one
+    // core, which is the part that has to hold: a two-core device rendering a
+    // different show from a one-core device would break the mesh's agreement
+    // with itself.
+    //
+    // Defaults to the chip's core count, so a dual-core board gets the
+    // speed-up without anyone remembering to ask. Set it to 1 on a board whose
+    // second core has another job.
+    let render_cores = match board.get("render_cores") {
+        None => *chip_cores,
+        Some(v) => {
+            let Some(n) = v.as_int() else {
+                return bad("`board.render_cores` is a number of cores");
+            };
+            if n < 1 {
+                return bad(
+                    "`board.render_cores` is less than 1; a device renders on at least one core",
+                );
+            }
+            if n > *chip_cores as i64 {
+                return bad(format!(
+                    "`board.render_cores` is {n} but `{chip}` has {chip_cores} core(s)"
+                ));
+            }
+            n as u8
+        }
+    };
 
     let mut features = Vec::new();
     if let Some(t) = doc.table("features") {
@@ -288,6 +320,7 @@ pub fn parse(text: &str) -> Result<Board, Error> {
         chip: chip.to_string(),
         target: target.to_string(),
         description,
+        render_cores,
         features,
         outputs,
         identify,

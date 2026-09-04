@@ -10,6 +10,10 @@ name = "esp32c6-generic"
 chip = "esp32c6"                 # RISC-V: upstream Rust target, no espup needed
 target = "riscv32imac-unknown-none-elf"
 description = "Bare C6 devkit with a single addressable LED output"
+# Cores the render loop uses. Defaults to the chip's core count, so this line is
+# only needed to render on fewer - a C6 has one either way. On a dual-core chip
+# the strip splits between them; see lumen-dev/docs/multicore.md.
+# render_cores = 1
 
 [features]
 enable = ["render"]              # Cargo features for this variant

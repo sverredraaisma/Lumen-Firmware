@@ -122,7 +122,7 @@ fn a_target_that_does_not_match_the_chip_is_refused() {
 #[test]
 fn every_known_chip_has_a_target_and_they_are_distinct() {
     let mut targets = std::collections::BTreeSet::new();
-    for (chip, target) in CHIPS {
+    for (chip, target, _cores) in CHIPS {
         assert!(!chip.is_empty() && !target.is_empty());
         assert!(targets.insert(*target), "{chip} shares a target");
     }
@@ -354,4 +354,78 @@ enable = []
     .expect_err("refused");
     assert_eq!(e.to_string(), e.message);
     assert!(e.to_string().contains("no `[board]` table"));
+}
+
+/// Cores a board renders on.
+///
+/// The pixels of a frame are independent, so a dual-core chip can split the
+/// strip between them - Spike S4 measured 1.97x on an S3, byte-identical to a
+/// single core. A board declares this so the firmware does not have to guess
+/// from the chip at runtime, and so a board whose second core has another job
+/// can say so.
+mod render_cores {
+    use crate::boards::parse;
+
+    fn board(chip: &str, target: &str, extra: &str) -> String {
+        format!(
+            "[board]\nname = \"b\"\nchip = \"{chip}\"\ntarget = \"{target}\"\n{extra}\n\n[[outputs]]\nid = \"strip0\"\nkind = \"ws2812\"\npin = 8\nmax_pixels = 300\nmax_current_ma = 2000\n"
+        )
+    }
+
+    #[test]
+    fn a_board_defaults_to_every_core_its_chip_has() {
+        // Silence should get the speed-up. Making a dual-core board opt in is
+        // a line everyone forgets, and forgetting it costs half the device.
+        let s3 = parse(&board("esp32s3", "xtensa-esp32s3-none-elf", "")).unwrap();
+        assert_eq!(s3.render_cores, 2);
+        let c3 = parse(&board("esp32c3", "riscv32imc-unknown-none-elf", "")).unwrap();
+        assert_eq!(c3.render_cores, 1);
+    }
+
+    #[test]
+    fn a_board_may_keep_a_core_for_something_else() {
+        let b = parse(&board(
+            "esp32s3",
+            "xtensa-esp32s3-none-elf",
+            "render_cores = 1",
+        ))
+        .unwrap();
+        assert_eq!(b.render_cores, 1);
+    }
+
+    #[test]
+    fn a_board_cannot_render_on_cores_its_chip_does_not_have() {
+        // Caught here rather than at boot. A shard index outside the shards
+        // renders some LEDs twice and others never, which looks like a broken
+        // effect and sends the next person to read the compiler.
+        let e = parse(&board(
+            "esp32c3",
+            "riscv32imc-unknown-none-elf",
+            "render_cores = 2",
+        ))
+        .unwrap_err();
+        assert!(e.message.contains("has 1 core"), "{}", e.message);
+    }
+
+    #[test]
+    fn a_board_cannot_render_on_no_cores_at_all() {
+        let e = parse(&board(
+            "esp32s3",
+            "xtensa-esp32s3-none-elf",
+            "render_cores = 0",
+        ))
+        .unwrap_err();
+        assert!(e.message.contains("at least one core"), "{}", e.message);
+    }
+
+    #[test]
+    fn render_cores_must_be_a_number() {
+        let e = parse(&board(
+            "esp32s3",
+            "xtensa-esp32s3-none-elf",
+            "render_cores = \"two\"",
+        ))
+        .unwrap_err();
+        assert!(e.message.contains("number of cores"), "{}", e.message);
+    }
 }

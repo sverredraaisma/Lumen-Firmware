@@ -1,0 +1,26 @@
+# A bare ESP32-S3 devkit: the dual-core member of the family, and the board that
+# shows what the second core is for.
+#
+# `render_cores = 2` splits the strip between them. Spike S4 measured 1.97x on
+# this chip with the output byte-identical to a single core - which is the half
+# that has to hold, because a two-core device rendering a different show from a
+# one-core device would break the mesh's agreement with itself.
+
+[board]
+name = "esp32s3-generic"
+chip = "esp32s3"                 # Xtensa: needs espup and the esp toolchain
+target = "xtensa-esp32s3-none-elf"
+description = "Bare S3 devkit, rendering on both cores"
+# Defaulted from the chip, so this line is documentation rather than
+# configuration. Set it to 1 on a board whose second core has another job.
+render_cores = 2
+
+[features]
+enable = ["render"]
+
+[[outputs]]
+id = "strip0"
+kind = "ws2812"
+pin = 8
+max_pixels = 300
+max_current_ma = 2000

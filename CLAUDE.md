@@ -49,6 +49,14 @@ cargo llvm-cov --summary-only                # coverage; must be >= 95%
   is not enough to join a mesh. Enforced in `boards.rs`, not just written down.
 - **Pins and LED counts are runtime config; only optional capabilities are Cargo
   features.** Each feature doubles a dimension of the CI build matrix.
+- **`render_cores` defaults to the chip's core count, and cannot exceed it.** The
+  pixels of a frame are independent, so a dual-core board splits the strip -
+  measured at 2.1x on an S3 with byte-identical output
+  (`lumen-dev/spikes/s4-dual-core/RESULTS.md`). Defaulted rather than opt-in
+  because a line everyone forgets costs half the device; set it to 1 on a board
+  whose second core has another job. The seam is `lumen_device::render::Shard`,
+  and a shard index outside the shards renders some LEDs twice and others never,
+  so it is checked at parse time rather than at boot.
 - **Zigbee is reached by FFI from the bridge shell, never from the core.**
 - **A device is never dark because of software.** Every failure path here needs a
   defined visual outcome — a corrupt program falls back, a lost network keeps
